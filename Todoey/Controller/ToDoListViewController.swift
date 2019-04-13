@@ -11,29 +11,24 @@ import UIKit
 class ToDoListViewController: UITableViewController {
 
     var array = [Item]()
-    
-    let defaults = UserDefaults.standard
-    
+    let datafilepath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("Items.plist")
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        var newItem = Item()
-        newItem.title = "one"
-        array.append(newItem)
+        loadItems()
+     }
 
-        var newItem2 = Item()
-        newItem2.title = "two"
-        array.append(newItem2)
-
-        var newItem3 = Item()
-        newItem3.title = "three"
-        array.append(newItem3)
-
-        if let items = defaults.array(forKey: "ToDoeyArrayList") as? [Item] {
-            array = items
+    func loadItems(){
+        if let data = try? Data(contentsOf: datafilepath!){
+            let decoder = PropertyListDecoder()
+            do{
+                array = try decoder.decode([Item].self, from: data)
+            }catch{
+                print("\(error)")
+            }
         }
     }
-
+    
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return array.count
     }
@@ -52,6 +47,8 @@ class ToDoListViewController: UITableViewController {
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         print(array[indexPath.row])
         array[indexPath.row].done = !array[indexPath.row].done
+        
+        saveData()
 
         if(tableView.cellForRow(at: indexPath)?.accessoryType == .checkmark){
             tableView.cellForRow(at: indexPath)?.accessoryType = .none
@@ -63,6 +60,20 @@ class ToDoListViewController: UITableViewController {
         tableView.reloadData()
     }
     
+    func saveData(){
+        let encoder = PropertyListEncoder()
+        do{
+            let data = try encoder.encode(array)
+            try data.write(to: datafilepath!)
+        }catch{
+            print("\(error)")
+        }
+        
+        //            self.defaults.set(self.array, forKey: "ToDoeyArrayList")
+        self.tableView.reloadData()
+
+    }
+    
     @IBAction func addButtonPressed(_ sender: UIBarButtonItem) {
         var textFeild = UITextField()
         
@@ -72,8 +83,7 @@ class ToDoListViewController: UITableViewController {
             let newItem = Item()
             newItem.title = textFeild.text!
             self.array.append(newItem)
-            self.defaults.set(self.array, forKey: "ToDoeyArrayList")
-            self.tableView.reloadData()
+            self.saveData()
 //            print(textFeild.text)
         }
         alert.addTextField { (alertTextfeild) in
